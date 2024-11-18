@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodeNote</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background-color: #f4f4f9;
+    }
+    header {
+      background: #4CAF50;
+      color: white;
+      text-align: center;
+      padding: 10px 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+      background: white;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+    }
+    .btn {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 5px;
+    }
+    .btn:hover {
+      background: #45a049;
+    }
+    .note-list {
+      margin: 10px 0;
+      padding: 0;
+      list-style: none;
+    }
+    .note-item {
+      padding: 10px;
+      margin: 5px 0;
+      background: #e8f5e9;
+      border-radius: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    .note-item:hover {
+      background: #c8e6c9;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      margin: 10px 0;
+      padding: 10px;
+      font-family: monospace;
+    }
+    .hidden {
+      display: none;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      margin: 5px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f0f0f0;
+      padding: 5px;
+      border-radius: 5px;
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>CodeNote</h1>
+    <p>Create and manage notes with multiple files!</p>
+  </header>
+
+  <div class="container">
+    <button class="btn" id="createNoteBtn">Create Note</button>
+
+    <div id="noteForm" class="hidden">
+      <h2>Note Files</h2>
+      <div id="filesList"></div>
+
+      <h3>Create a New File</h3>
+      <input type="text" id="fileName" placeholder="Enter file name with extension (e.g., index.html)" />
+      <textarea id="fileContent" placeholder="Write your code here..."></textarea>
+      <button class="btn" id="addFileBtn">Add File</button>
+      <button class="btn" id="saveNoteBtn">Save Note</button>
+    </div>
+
+    <ul class="note-list" id="notesList"></ul>
+  </div>
+
+  <script>
+    // Elements
+    const createNoteBtn = document.getElementById('createNoteBtn');
+    const noteForm = document.getElementById('noteForm');
+    const fileNameInput = document.getElementById('fileName');
+    const fileContentInput = document.getElementById('fileContent');
+    const addFileBtn = document.getElementById('addFileBtn');
+    const saveNoteBtn = document.getElementById('saveNoteBtn');
+    const filesList = document.getElementById('filesList');
+    const notesList = document.getElementById('notesList');
+
+    // Store notes in localStorage
+    const notes = JSON.parse(localStorage.getItem('notes')) || {};
+    let currentNoteFiles = {};
+
+    // Helper Functions
+    function saveNotes() {
+      localStorage.setItem('notes', JSON.stringify(notes));
+    }
+// Render Notes List
+    function renderNotesList() {
+      notesList.innerHTML = '';
+      for (const noteName in notes) {
+        const noteItem = document.createElement('li');
+        noteItem.className = 'note-item';
+        noteItem.innerHTML = `
+          <span>${noteName}</span>
+          <button class="btn view-note" data-name="${noteName}">View</button>
+        `;
+        notesList.appendChild(noteItem);
+      }
+      attachViewEventHandlers();
+    }
+
+    // Render Files List
+    function renderFilesList() {
+      filesList.innerHTML = '';
+      for (const fileName in currentNoteFiles) {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+        fileItem.innerHTML = `
+          <span>${fileName}</span>
+          <button class="btn delete-file" data-name="${fileName}">Delete</button>
+        `;
+        filesList.appendChild(fileItem);
+      }
+      attachDeleteFileHandlers();
+    }
+
+    // Attach event handlers to view buttons
+    function attachViewEventHandlers() {
+      const viewButtons = document.querySelectorAll('.view-note');
+      viewButtons.forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const noteName = e.target.getAttribute('data-name');
+          currentNoteFiles = notes[noteName];
+          fileNameInput.value = '';
+          fileContentInput.value = '';
+          renderFilesList();
+          noteForm.classList.remove('hidden');
+        });
+      });
+    }
+
+    // Attach event handlers to delete buttons
+    function attachDeleteFileHandlers() {
+      const deleteButtons = document.querySelectorAll('.delete-file');
+      deleteButtons.forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const fileName = e.target.getAttribute('data-name');
+          delete currentNoteFiles[fileName];
+          renderFilesList();
+        });
+      });
+    }
+
+    // Create a new note
+    createNoteBtn.addEventListener('click', () => {
+      const noteName = prompt('Enter a name for your note:');
+      if (noteName && !notes[noteName]) {
+        notes[noteName] = {};
+        currentNoteFiles = notes[noteName];
+        fileNameInput.value = '';
+        fileContentInput.value = '';
+        renderNotesList();
+        renderFilesList();
+        noteForm.classList.remove('hidden');
+      } else if (notes[noteName]) {
+        alert('A note with this name already exists.');
+      }
+    });
+
+    // Add a new file to the current note
+    addFileBtn.addEventListener('click', () => {
+      const fileName = fileNameInput.value.trim();
+      const fileContent = fileContentInput.value.trim();
+      if (fileName && fileContent) {
+        currentNoteFiles[fileName] = fileContent;
+        renderFilesList();
+        fileNameInput.value = '';
+        fileContentInput.value = '';
+      } else {
+        alert('Please enter a file name and some content.');
+      }
+    });
+
+    // Save the current note
+    saveNoteBtn.addEventListener('click', () => {
+      const noteName = Object.keys(notes).find(
+        (name) => notes[name] === currentNoteFiles
+      );
+      if (noteName) {
+        notes[noteName] = currentNoteFiles;
+        saveNotes();
+        renderNotesList();
+        alert('Note saved successfully!');
+        noteForm.classList.add('hidden');
+      }
+    });
+
+    // Initial render
+    renderNotesList();
+  </script>
+</body>
+  </html>
